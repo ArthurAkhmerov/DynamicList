@@ -1,5 +1,5 @@
 /*eslint disable strict */ //Disabling check because we can't run strict mode. Need global vars.
 
-var DynamicList = require('./rows/dynamicList');
+var DynamicList = require('./rows/dynamicList.jsx');
 
 module.exports = DynamicList;

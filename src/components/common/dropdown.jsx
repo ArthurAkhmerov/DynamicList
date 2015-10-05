@@ -3,8 +3,8 @@
 // based on when the user clicks on a button
 
 var React = require('react');
-var Button = require('./button');
-var ListItem = require('./list-item');
+var Button = require('./button.jsx');
+var ListItem = require('./list-item.jsx');
 
 module.exports = React.createClass({
   handleClick: function() {

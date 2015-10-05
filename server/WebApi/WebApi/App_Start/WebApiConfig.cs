@@ -22,8 +22,8 @@ namespace WebApi
 
             config.Routes.MapHttpRoute(
                   name: "Row",
-                  routeTemplate: "api/rows/{number}",
-                  defaults: new { controller = "rows", number = RouteParameter.Optional }
+                  routeTemplate: "api/rows/{rowNumber}",
+                  defaults: new { controller = "rows", rowNumber = RouteParameter.Optional }
               );
 
             config.Routes.MapHttpRoute(

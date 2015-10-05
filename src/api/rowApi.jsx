@@ -14,24 +14,24 @@ var RowApi = {
     getRowByNumber: function() {
         
     },
-    createRow: function(tmp, cells) {
+    createRow: function(row) {
         return fetch(this.baseUrl + "api/rows", {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
             method: 'post',
-            body: JSON.stringify({number: tmp, cells: cells})
+            body: JSON.stringify({number: row.number, cells: row.cells})
         });
     },
-    saveRow: function(rowNumber, cells) {
-        return fetch(this.baseUrl + "api/rows/" + rowNumber, {
+    saveRow: function(row) {
+        return fetch(this.baseUrl + "api/rows/" + row.number, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
             method: 'put',
-            body: JSON.stringify({cells: cells})
+            body: JSON.stringify({cells: row.cells})
         });
     },
     deleteRow: function(number) {

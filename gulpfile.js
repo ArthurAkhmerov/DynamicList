@@ -14,7 +14,7 @@ var config = {
     devBaseUrl: "http://localhost",
     paths: {
         html: './src/*.html',
-        js: './src/**/*.js',
+        js: './src/**/*.jsx',
         images: './src/images/*',
         css: [
             'node_modules/bootstrap/dist/css/bootstrap.min.css',
@@ -22,7 +22,7 @@ var config = {
             'node_modules/toastr/toastr.css',
         ],
         dist: './dist',
-        mainJs: './src/main.js'
+        mainJs: './src/main.jsx'
     }
 }
 
@@ -73,15 +73,15 @@ gulp.task('images', function() {
         .pipe(gulp.dest(config.paths.dist));
 });
 
-gulp.task('lint', function() {
-    return gulp.src(config.paths.js)
-        .pipe(lint({config: 'eslint.config.json'}))
-        .pipe(lint.format());
-});
+// gulp.task('lint', function() {
+//     return gulp.src(config.paths.js)
+//         .pipe(lint({config: 'eslint.config.json'}))
+//         .pipe(lint.format());
+// });
 
 gulp.task('watch', function() {
     gulp.watch(config.paths.html, ['html']);
-    gulp.watch(config.paths.js, ['js', 'lint']);
+    gulp.watch(config.paths.js, ['js']);
 });
 
-gulp.task('default', ['html', 'js', 'css', 'images', 'lint', 'open', 'watch']);
+gulp.task('default', ['html', 'js', 'css', 'images', 'open', 'watch']);
