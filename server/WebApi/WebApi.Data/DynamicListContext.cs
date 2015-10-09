@@ -6,7 +6,7 @@ namespace WebApi.Data
 {
     public class DynamicListContext
     {
-        public MongoDatabase Database;
+        private MongoDatabase Database;
 
         public DynamicListContext()
         {

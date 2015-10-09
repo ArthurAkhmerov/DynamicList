@@ -5,39 +5,31 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using Core.Common;
 using MongoDB.Bson;
 using MongoDB.Driver.Builders;
 using WebApi.Data;
 using WebApi.Data.Entities;
-using WebApi.Helpers;
 
 namespace WebApi.Controllers
 {
-    public class RowsController : ApiController
+   public class RowsController : ApiController
     {
-        public readonly DynamicListContext Context = new DynamicListContext();
+        private readonly IRowRepository _repo;
 
-        public RowsController()
+        public RowsController(IRowRepository repo)
         {
-
+            _repo = repo;
         }
 
         public object Get()
         {
-            var rows = Context.Rows.FindAll();
-            var listOfRows = rows.ToList();
-            listOfRows = listOfRows.OrderBy(r => r.Number, new SemiNumericComparer()).ToList();
-
-            return new
-            {
-                TotalCount = 10,
-                Rows = listOfRows
-            };
+            return _repo.GetAll();
         }
 
         public HttpResponseMessage Get(string rowNumber)
         {
-            var row = Context.Rows.FindOne(Query.EQ("Number", rowNumber));
+            var row = _repo.GetByRowNumber(rowNumber);
 
             if (row == null)
                 return Request.CreateResponse(HttpStatusCode.NotFound);
@@ -46,50 +38,51 @@ namespace WebApi.Controllers
         }
 
         [HttpPost]
-        public HttpResponseMessage Post([FromBody] Row model)
+        public HttpResponseMessage Post([FromBody] Row rowToAdd)
         {
-            try
+            var result = _repo.Add(rowToAdd);
+            if (result.Success)
             {
-                var row = model;
-                Context.Rows.Insert(row);
-
-                return Request.CreateResponse(HttpStatusCode.Created, row);
+                return Request.CreateResponse(HttpStatusCode.Created, rowToAdd);
             }
-            catch (Exception ex)
+            else
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                var msg = String.Join(";", result.MessageList);
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, msg);
             }
         }
 
         [HttpPut]
         [HttpPatch]
-        public HttpResponseMessage Patch(string rowNumber, [FromBody] Row model)
+        public HttpResponseMessage Patch(string rowNumber, [FromBody] Row rowToUpdate)
         {
-            try
+            var result = _repo.Update(rowNumber, rowToUpdate);
+            if (result.Success)
             {
-                var row = Context.Rows.FindOne(Query.EQ("Number", rowNumber));
-                if(row == null) return Request.CreateResponse(HttpStatusCode.NotFound);
-
-                row.Cells = model.Cells;
-                Context.Rows.Save(row);
                 return Request.CreateResponse(HttpStatusCode.OK);
             }
-            catch (Exception ex)
+            else if (result.MessageList.Contains("Not found"))
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                return Request.CreateResponse(HttpStatusCode.NotFound);
+            }
+            else
+            {
+                var msg = String.Join(";", result.MessageList);
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, msg);
             }
         }
 
         public HttpResponseMessage Delete(string rowNumber)
         {
-            try
+            OperationResult result = _repo.DeleteByRowNumber(rowNumber);
+            if (result.Success)
             {
-                Context.Rows.Remove(Query.EQ("Number", rowNumber));
                 return Request.CreateResponse(HttpStatusCode.OK);
             }
-            catch (Exception ex)
+            else
             {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+                var msg = String.Join("; ", result.MessageList);
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, msg);
             }
         }
     }
