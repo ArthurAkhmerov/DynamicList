@@ -44620,11 +44620,12 @@ var AddRowForm = React.createClass({displayName: "AddRowForm",
     getInitialState: function() {
         return {
             columns: [
-              {number:1, type:"int", defaultValue: "0"}, 
-              {number:2, type: "string", defaultValue: "empty"},
-              {number:3, type: "string", defaultValue: "empty"}
+              {number:1, type:"no type", defaultValue: "0", error: ''}, 
+              {number:2, type: "no type", defaultValue: "empty", error: ''},
+              {number:3, type: "no type", defaultValue: "empty", error: ''}
             ],
-          canAddRow: true
+          canAddRow: false,
+          allColumnTypesAreSelected: false
         }
     },
     handleSubmit: function(e) {
@@ -44642,30 +44643,85 @@ var AddRowForm = React.createClass({displayName: "AddRowForm",
     handleAddColumnClick: function() {
         var component = this;
         var count = component.state.columns.length+1;
-        this.setState({columns: this.state.columns.concat({number:count, type: "string", defaultValue: "empty"})});
-        
+        this.setState({columns: this.state.columns.concat({number:count, type: "no type", defaultValue: "empty"})});
+        this.setState({allColumnTypesAreSelected: false});
+        this.setState({canAddRow: false});
     },
     handleRemoveColumnClick: function() {
         var component = this;
         var index = component.state.columns.length-1;
         this.setState({
-  columns: React.addons.update(this.state.columns, {$splice: [[index, 1]]})
-        
-    });
+            columns: React.addons.update(this.state.columns, {$splice: [[index, 1]]})
+        });
     },
     handleCellUpdated: function(number, value){
+        var component = this;
         var columns = this.state.columns;
         var column = _.find(columns, {number: number});
         column.defaultValue = value;
+        component.enableAddRow(true);
+        column.error = '';
+        if(!this.checkIsValidColumn(column)){
+          column.error='Invalid value';
+        }
+        if(!this.checkIsValidColumns()) {
+          component.enableAddRow(false);
+        }
+        if(!this.checkAreAllColumnsSelected()){
+          component.enableAddRow(false);
+        }
+        
         this.setState({ columns: columns, rowChanged: true});
     },
+
     handleChangedColumnType: function(number, type){
+        var component = this;
         var columns = this.state.columns;
         var column = _.find(columns, { number: number});
         column.type = type;
         this.setState({ columns: columns, rowChanged: true});
+        this.enableAddRow(true);
+        column.error = '';
+        if(!this.checkIsValidColumn(column)){
+          column.error='Invalid value';
+        }
+        if(!this.checkIsValidColumns()) {
+          component.enableAddRow(false);
+        }
+        if(!this.checkAreAllColumnsSelected()){
+          component.enableAddRow(false);
+        }
     },
-    setSave: function(canAddRow) {
+    checkIsValidColumns: function() {
+      var component = this;
+      var valid = true;
+      this.state.columns.forEach(function(column, i) {
+        if(!component.checkIsValidColumn(column)) {
+          valid = false;
+        }
+      });
+      return valid;
+    },
+    checkIsValidColumn: function(column) {
+       var component = this;
+        var valid = true;
+        if (column.type === 'int' && (isNaN(column.defaultValue) || column.defaultValue % 1 !== 0)) {
+          valid = false;
+        }
+        if (column.type === 'double' && isNaN(column.defaultValue)) {
+          valid = false;
+        }
+        return valid;
+    },
+    checkAreAllColumnsSelected: function() {
+        var valid = true
+        var columns = this.state.columns;
+        columns.forEach(function(item, i) {
+          if(item.type === 'no type') valid = false;
+        });
+        return valid;
+    },
+    enableAddRow: function(canAddRow) {
       this.setState({canAddRow: canAddRow});  
     },
     render: function() {
@@ -44674,8 +44730,9 @@ var AddRowForm = React.createClass({displayName: "AddRowForm",
           return (
             React.createElement("div", null, 
               React.createElement(Cell, {editable: true, value: column.defaultValue, type: column.type, index: column.number, updateCell: component.handleCellUpdated, setDisabled: component.setSave}), 
-              React.createElement(DDL, {title: "Choose type", items: ["int", "double", "string"], changeColumnType: component.handleChangedColumnType, number: column.number})
-              )
+              React.createElement(DDL, {title: "Choose type", items: ["int", "double", "string"], changeColumnType: component.handleChangedColumnType, number: column.number}), 
+              React.createElement("span", null, column.error)
+            )
               );
       });
       return (
@@ -44705,27 +44762,9 @@ var Cell = React.createClass({displayName: "Cell",
     getInitialState:function() {
         return  {
             type: this.props.type,
-            error: ''
         };
     },
      handleValueChange: function(event) {
-         if(event.target.value === '') {
-             this.setState({
-                 error: 'Field must not be empty'
-             });
-             this.props.setDisabled(false);
-             
-         } else if((this.state.type == 'int' || this.state.type == 'double') && isNaN(event.target.value)) {
-             this.setState({
-                 error: 'Not a number'
-             });
-             this.props.setDisabled(false);             
-         } else {
-              this.setState({
-                 error: ''
-             });
-             this.props.setDisabled(true);
-         }
          this.props.updateCell(this.props.index, event.target.value);
     },
     
@@ -44733,10 +44772,10 @@ var Cell = React.createClass({displayName: "Cell",
         var component = this;
         var errorStyle = { color: "red"};
         if (this.props.editable){
-            return React.createElement("td", null, React.createElement("input", {type: "text", value: component.props.value, onChange: component.handleValueChange}), " ", React.createElement("span", {style: errorStyle}, component.state.error, " ")
-                    )
+            return React.createElement("input", {type: "text", value: component.props.value, onChange: component.handleValueChange})  
+                    
         } else {
-            return React.createElement("td", null, component.props.value, " (", component.state.type, ")")                     
+            return React.createElement("span", null, component.props.value, " (", component.state.type, ")")                     
         }  
     }
 });
@@ -44848,24 +44887,87 @@ var Row = React.createClass({displayName: "Row",
       this.setState({value: this.state.oldValue, rowChanged: false});
   },
   handleCellUpdated: function(index, value){
+      var component = this;
       var cells = this.state.value.cells;
       var cell = _.find(cells, {index: index});
       cell.value = value;
+      cell.error = '';
+      component.enableSave(true);
+      if(!this.checkIsValidCell(cell)) {
+        cell.error='Invalid value';
+      }
+      
+      if(!this.checkAreValidCells()) {
+        this.enableSave(false);
+      }
+      
       this.setState({ value: {number: this.props.value.number, cells: cells}, rowChanged: true});
   },
-  setSave: function(canSave) {
+  checkAreValidCells: function() {
+    var component = this;
+    var valid = true;
+    var cells = this.state.value.cells;
+    
+    cells.forEach(function(cell, i) {
+      if (!component.checkIsValidCell(cell))
+        valid = false;
+    });
+    
+    return valid;
+  },
+  checkIsValidCell: function(cell) {
+      var valid = true;
+      if (cell.type === 'int' && (isNaN(cell.value) || cell.value % 1 !== 0)) {
+        valid = false;
+      }
+      if (cell.type === 'double' && isNaN(cell.value)) {
+        valid = false;
+      }
+      
+      return valid;
+    
+    },
+  enableSave: function(canSave) {
       this.setState({canSave: canSave});
+  },
+  removeCell: function(cell){
+    var component = this;
+    
+    var value = this.state.value
+    var cell = _.find(value.cells, {index: cell.index});
+    var index =  value.cells.indexOf(cell);
+    value.cells.splice(index, 1);
+    this.setState({
+            value: value,
+            rowChanged: true
+        });
+   
+  },
+  addCell: function() {
+    var value = this.state.value;
+    var index = value.cells[value.cells.length-1].index+1;
+    value.cells.push({index: index, value: 'new cell', type: 'string' });
+     this.setState({
+      value: value,
+      rowChanged: true
+     });
   },
   render: function() {
      var component = this;
      var columns = this.state.value.cells.map(function(cell) {
-     var isEditable = component.state.editable;
-           return React.createElement(Cell, {editable: isEditable, value: cell.value, type: cell.type, index: cell.index, updateCell: component.handleCellUpdated, setDisabled: component.setSave})
-               
+      var isEditable = component.state.editable;
+ 
+      return React.createElement("td", null, 
+              React.createElement(Cell, {editable: isEditable, value: cell.value, type: cell.type, index: cell.index, updateCell: component.handleCellUpdated}), 
+              React.createElement("button", {onClick: component.removeCell.bind(this, cell)}, " X"), 
+              React.createElement("span", null, cell.error)
+              )
+              
         });
       return React.createElement("tr", null, 
                 React.createElement("td", null, React.createElement("button", {onClick: component.handleEditClick, className: "btn btn-warning"}, component.editText())), 
                 React.createElement("td", null, React.createElement("button", {className: "btn btn-danger", onClick: this.handleDeleteClick}, "Delete")), 
+                React.createElement("td", null, React.createElement("button", {className: "btn btn-success", onClick: this.addCell}, "Add cell")), 
                 React.createElement("td", null, component.changeButton()), 
                 columns
               );

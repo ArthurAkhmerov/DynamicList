@@ -23,17 +23,10 @@ namespace Core.Common
             return string.Compare(s1, s2, true);
         }
 
-        public static bool IsNumeric(object value)
+        private static bool IsNumeric(object value)
         {
-            try
-            {
-                int i = Convert.ToInt32(value.ToString());
-                return true;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
+            int n;
+            return Int32.TryParse(value.ToString(), out n);
         }
     }
 }

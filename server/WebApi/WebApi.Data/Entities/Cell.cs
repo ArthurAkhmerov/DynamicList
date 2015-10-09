@@ -1,4 +1,4 @@
-﻿namespace WebApi.Data.Entities
+﻿    namespace WebApi.Data.Entities
 {
     public class Cell
     {

@@ -8,7 +8,7 @@ namespace WebApi.Data
 {
     public class RowRepository : IRowRepository
     {
-        private DynamicListContext _ctx;
+        private readonly DynamicListContext _ctx;
 
         public RowRepository(DynamicListContext ctx)
         {
